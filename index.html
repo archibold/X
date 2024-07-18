@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Widget Library Test</title>
+        <style>
+            #test-section #root {
+                width: 500px;
+                margin: auto;
+                .widget-initialized {
+                    border: 2px solid green;
+                }
+                .widget-destroyed {
+                    border: 2px solid red;
+                }
+                .selected {
+                    outline: 2px dashed blue;
+                }
+            }
+            #test-section #root div {
+                background: white;
+                min-height: 20px;
+                width: auto;
+                padding: 10px;
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Widget Library Test</h1>
+        <div id="test-section">
+            <!-- Test DOM tree -->
+            <div id="root">
+                <div widget="widgets/a">
+                    <div widget="widgets/b"></div>
+                </div>
+                <div></div>
+                <div widget="widgets/c"></div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div id="control-panel">
+            <button id="init">Init</button>
+            <button id="destroy">Destroy</button>
+            <button id="done">Done</button>
+            <button id="fail">Fail</button>
+        </div>
+
+        <!-- Info block -->
+        <div id="info">
+            <h2>Info</h2>
+            <p id="selected-node-info">Selected Node: None</p>
+            <p id="log"></p>
+        </div>
+
+        <script type="module">
+            import X from "./x.js";
+
+            const root = document.getElementById("root");
+            const info = document.getElementById("info");
+            const selectedNodeInfo =
+                document.getElementById("selected-node-info");
+            const log = document.getElementById("log");
+            function logAction(node, message) {
+                const elem = document.createElement("p");
+                elem.innerHTML = `${node}:: ${message}`;
+                log.prepend(elem);
+            }
+            let selectedNode = null;
+
+            // Helper function to clear selection
+            function clearSelection() {
+                if (selectedNode) {
+                    selectedNode.classList.remove("selected");
+                }
+                selectedNode = null;
+                selectedNodeInfo.innerText = "Selected Node: None";
+            }
+
+            // Add click event listener to root to allow node selection
+            root.addEventListener("click", (event) => {
+                event.stopPropagation();
+                clearSelection();
+                selectedNode = event.target;
+                selectedNode.classList.add("selected");
+                selectedNodeInfo.innerText = `Selected Node: ${selectedNode.nodeName.toLowerCase()}${
+                    selectedNode.id ? `#${selectedNode.id}` : ""
+                }${selectedNode.className ? `.${selectedNode.className}` : ""}`;
+            });
+
+            document.getElementById("init").addEventListener("click", () => {
+                if (selectedNode) {
+                    const nodeName = `${selectedNode.nodeName.toLowerCase()}-${
+                        selectedNode.getAttribute("widget") || ""
+                    }`;
+                    X.init(selectedNode, (errors) => {
+                        console.log(selectedNode);
+                        if (errors) {
+                            console.log(selectedNode);
+                            logAction(
+                                nodeName,
+                                `Initialization failed with errors: ${errors
+                                    .map((e) => e.error)
+                                    .join(", ")}`
+                            );
+                        } else {
+                            logAction(nodeName, "After Callback run");
+                        }
+                    });
+                }
+            });
+
+            document.getElementById("destroy").addEventListener("click", () => {
+                if (selectedNode) {
+                    const nodeName = `${selectedNode.nodeName.toLowerCase()}-${
+                        selectedNode.getAttribute("widget") || ""
+                    }`;
+                    try {
+                        X.destroy(selectedNode);
+                        logAction(nodeName, "Destruction successful");
+                    } catch (e) {
+                        logAction(nodeName, e);
+                    }
+
+                    // log.innerText = "Destruction successful";
+                }
+            });
+
+            document.getElementById("done").addEventListener("click", () => {
+                if (selectedNode) {
+                    const nodeName = `${selectedNode.nodeName.toLowerCase()}-${
+                        selectedNode.getAttribute("widget") || ""
+                    }`;
+                    const widget = X.getWidgetInstance(selectedNode);
+                    if (widget && widget.doneHandler) {
+                        widget.doneHandler();
+                        logAction(nodeName, "Done method called on widget");
+                        //log.innerText = "Done method called on widget";
+                    }
+                }
+            });
+
+            document.getElementById("fail").addEventListener("click", () => {
+                if (selectedNode) {
+                    const nodeName = `${selectedNode.nodeName.toLowerCase()}-${
+                        selectedNode.getAttribute("widget") || ""
+                    }`;
+                    const widget = X.getWidgetInstance(selectedNode);
+                    if (widget && widget.failHandler) {
+                        widget.failHandler();
+                        logAction(nodeName, "Fail method called on widget");
+                        //log.innerText = "Fail method called on widget";
+                    }
+                }
+            });
+
+            // Click on document to clear selection
+            document.addEventListener("click", (event) => {
+                clearSelection();
+            });
+        </script>
+    </body>
+</html>
